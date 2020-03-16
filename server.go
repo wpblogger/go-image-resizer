@@ -29,6 +29,10 @@ func getResizeJPG(ctx *fasthttp.RequestCtx) {
 	resp := fasthttp.AcquireResponse()
 	client := &fasthttp.Client{MaxIdleConnDuration: time.Second}
 	client.Do(req, resp)
+	if resp.StatusCode() != fasthttp.StatusOK || resp.Header.ContentLength() == 0 {
+		ctx.NotFound()
+	}
+	log.Print(string(resp.Header.ContentType()))
 }
 
 /*func getVersion(ctx *fasthttp.RequestCtx) {
