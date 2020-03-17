@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"image/jpeg"
 	"log"
 	"os"
 	"regexp"
@@ -8,6 +11,7 @@ import (
 
 	"github.com/buaazp/fasthttprouter"
 	"github.com/getsentry/sentry-go"
+	"github.com/nfnt/resize"
 	"github.com/valyala/fasthttp"
 )
 
@@ -33,6 +37,24 @@ func getResizeJPG(ctx *fasthttp.RequestCtx) {
 		ctx.NotFound()
 	}
 	log.Print(string(resp.Header.ContentType()))
+	ctx.Response.Header.Set("Content-Type", string(resp.Header.ContentType()))
+	//fmt.Fprint(ctx, string(resp.Body()))
+	/*var r bytes.Buffer
+	_, err := io.ReadFull(&r, bytes.NewBuffer(resp.Body()))
+	if err != nil {
+		ctx.NotFound()
+	}*/
+	//var r *bytes.Buffer
+	r := bytes.NewBuffer(resp.Body())
+	img, err := jpeg.Decode(r)
+	if err != nil {
+		ctx.NotFound()
+	}
+	log.Print(img)
+	m := resize.Resize(40, 0, img, resize.Lanczos3)
+	var out bytes.Buffer
+	jpeg.Encode(&out, m, nil)
+	fmt.Fprint(ctx, out.String())
 }
 
 /*func getVersion(ctx *fasthttp.RequestCtx) {
