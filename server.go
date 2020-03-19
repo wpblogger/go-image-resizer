@@ -21,6 +21,14 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+type queData struct {
+	createTime int64
+	filePath   string
+}
+
+var queue []queData
+var branch string
+
 func getResizeJPG(ctx *fasthttp.RequestCtx) {
 	var out string
 	var err error
@@ -38,53 +46,19 @@ func getResizeJPG(ctx *fasthttp.RequestCtx) {
 	if err != nil {
 		out, err = convertImage(realImageURL, params)
 		if err != nil {
+			sentry.CaptureException(err)
 			ctx.NotFound()
 			return
 		}
 		err = writeCache(params, out)
 		if err != nil {
+			sentry.CaptureException(err)
 			log.Print(err)
 		}
 		log.Print("GetConvert:", realImageURL, " Time:", time.Since(start))
 	} else {
 		log.Print("Cache:", realImageURL, " Time:", time.Since(start))
 	}
-
-	/*req := fasthttp.AcquireRequest()
-	req.SetRequestURI(realImageURL)
-	req.Header.SetConnectionClose()
-	req.Header.SetMethod("GET")
-	resp := fasthttp.AcquireResponse()
-	client := &fasthttp.Client{MaxIdleConnDuration: time.Second}
-	client.Do(req, resp)
-	if resp.StatusCode() != fasthttp.StatusOK || resp.Header.ContentLength() == 0 {
-		ctx.NotFound()
-		return
-	}
-	partOneTime := time.Since(start)
-	start = time.Now()
-	ctx.Response.Header.Set("Content-Type", "image/jpeg")
-	r := bytes.NewBuffer(resp.Body())
-	var img image.Image
-	switch imgType := string(resp.Header.ContentType()); imgType {
-	case "image/jpeg":
-		img, err = jpeg.Decode(r)
-	case "image/png":
-		img, err = png.Decode(r)
-	case "image/gif":
-		img, err = gif.Decode(r)
-	default:
-		ctx.NotFound()
-		return
-	}
-	if err != nil {
-		ctx.NotFound()
-		return
-	}
-	m := resize.Resize(uint(newWidth), uint(newHeight), img, resize.Lanczos3)
-	var out bytes.Buffer
-	jpeg.Encode(&out, m, nil)
-	log.Print("Get:", realImageURL, " Time:", partOneTime, " Out:", url, " Time:", time.Since(start))*/
 	ctx.Response.Header.Set("Content-Type", "image/jpeg")
 	fmt.Fprint(ctx, out)
 }
@@ -97,6 +71,10 @@ func readCache(params []string) (string, error) {
 func writeCache(params []string, data string) error {
 	os.MkdirAll("/tmp"+params[1], os.ModePerm)
 	err := ioutil.WriteFile("/tmp"+params[1]+"/"+params[2]+"_"+params[3], []byte(data), 0644)
+	if err == nil {
+		data := queData{createTime: time.Now().Unix(), filePath: "/tmp" + params[1] + "/" + params[2] + "_" + params[3]}
+		queue = append(queue, data)
+	}
 	return err
 }
 
@@ -147,7 +125,36 @@ func convertImage(realImageURL string, params []string) (string, error) {
 	return result, err
 }
 
+func cleanCache() {
+	var i int
+	var path string
+	now := time.Now().Unix()
+	for idx, el := range queue {
+		if el.createTime < now-30 {
+			i = idx
+			path = el.filePath
+		}
+	}
+	if len(path) == 0 {
+		return
+	}
+	err := os.Remove(path)
+	if err != nil {
+		sentry.CaptureException(err)
+		log.Print(err)
+	} else {
+		queue = append(queue[:i], queue[i+1:]...)
+		log.Print("File ", path, " delete from cache")
+	}
+}
+
+func getVersion(ctx *fasthttp.RequestCtx) {
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	fmt.Fprint(ctx, `{"data": {"version": "`+branch+`"}, "error": {}}`)
+}
+
 func main() {
+	queue = []queData{}
 	listenPort := "8080"
 	if len(os.Getenv("PORT")) > 0 {
 		listenPort = os.Getenv("PORT")
@@ -158,7 +165,17 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
+	if len(os.Getenv("BRANCH")) > 0 {
+		branch = os.Getenv("BRANCH")
+	}
+	go func() {
+		for {
+			cleanCache()
+			time.Sleep(10 * time.Second)
+		}
+	}()
 	router := fasthttprouter.New()
+	router.GET("/api/system/version", getVersion)
 	router.GET("/*name", getResizeJPG)
 	server := &fasthttp.Server{
 		Handler:            router.Handler,
