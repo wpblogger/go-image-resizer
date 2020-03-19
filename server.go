@@ -22,10 +22,12 @@ import (
 )
 
 type queData struct {
-	createTime int64
-	filePath   string
+	createTime     int64
+	cacheInSeconds int64
+	filePath       string
 }
 
+var cacheInSeconds int64
 var queue []queData
 var branch string
 
@@ -34,6 +36,12 @@ func getResizeJPG(ctx *fasthttp.RequestCtx) {
 	var err error
 	start := time.Now()
 	url := string(ctx.RequestURI())
+	versionURL, _ := regexp.MatchString(`^/api/system/version[/]*$`, url)
+	if versionURL {
+		getVersion(ctx)
+		return
+	}
+	log.Print("Request image: ", string(ctx.URI().Scheme())+`://`+string(ctx.Request.Header.Host())+string(ctx.RequestURI()))
 	validURL, _ := regexp.MatchString(`^(.*)/resizer/(\d+)/(\d+)[/]*$`, url)
 	if !validURL {
 		ctx.NotFound()
@@ -46,6 +54,7 @@ func getResizeJPG(ctx *fasthttp.RequestCtx) {
 	if err != nil {
 		out, err = convertImage(realImageURL, params)
 		if err != nil {
+			log.Print(err)
 			sentry.CaptureException(err)
 			ctx.NotFound()
 			return
@@ -130,7 +139,7 @@ func cleanCache() {
 	var path string
 	now := time.Now().Unix()
 	for idx, el := range queue {
-		if el.createTime < now-30 {
+		if el.createTime < now-cacheInSeconds {
 			i = idx
 			path = el.filePath
 		}
@@ -168,6 +177,13 @@ func main() {
 	if len(os.Getenv("BRANCH")) > 0 {
 		branch = os.Getenv("BRANCH")
 	}
+	cacheInSeconds = 3600
+	if len(os.Getenv("CACHEINSECONDS")) > 0 {
+		cacheInt, err := strconv.ParseInt(os.Getenv("CACHEINSECONDS"), 10, 64)
+		if err == nil {
+			cacheInSeconds = cacheInt
+		}
+	}
 	go func() {
 		for {
 			cleanCache()
@@ -175,7 +191,6 @@ func main() {
 		}
 	}()
 	router := fasthttprouter.New()
-	router.GET("/api/system/version", getVersion)
 	router.GET("/*name", getResizeJPG)
 	server := &fasthttp.Server{
 		Handler:            router.Handler,
