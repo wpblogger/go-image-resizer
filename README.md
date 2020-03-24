@@ -19,6 +19,7 @@ http://localhost/_nuxt/img/82a1fe2.png/resizer/x/y
 location ~ /resizer/ {
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
     proxy_pass http://service:port;
 }
 ```
