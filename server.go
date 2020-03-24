@@ -36,12 +36,16 @@ func getResizeJPG(ctx *fasthttp.RequestCtx) {
 	var err error
 	start := time.Now()
 	url := string(ctx.RequestURI())
+	scheme := string(ctx.Request.Header.Peek("X-Forwarded-Proto"))
+	realIP := string(ctx.Request.Header.Peek("X-Real-IP"))
+	host := string(ctx.Request.Header.Host())
+	requestURI := string(ctx.RequestURI())
 	versionURL, _ := regexp.MatchString(`^/api/system/version[/]*$`, url)
 	if versionURL {
 		getVersion(ctx)
 		return
 	}
-	log.Print("Request image: ", string(ctx.URI().Scheme())+`://`+string(ctx.Request.Header.Host())+string(ctx.RequestURI()))
+	log.Print("Request image: ", scheme+`://`+host+requestURI, " From: ", realIP)
 	validURL, _ := regexp.MatchString(`^(.*)/resizer/(\d+)/(\d+)[/]*$`, url)
 	if !validURL {
 		ctx.NotFound()
@@ -49,7 +53,7 @@ func getResizeJPG(ctx *fasthttp.RequestCtx) {
 	}
 	regex := regexp.MustCompile(`^(.*)/resizer/(\d+)/(\d+)[/]*$`)
 	params := regex.FindAllStringSubmatch(url, -1)[0]
-	realImageURL := string(ctx.URI().Scheme()) + `://` + string(ctx.Request.Header.Host()) + params[1]
+	realImageURL := scheme + `://` + host + params[1]
 	out, err = readCache(params)
 	if err != nil {
 		out, err = convertImage(realImageURL, params)
