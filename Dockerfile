@@ -6,6 +6,8 @@ WORKDIR /app
 RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -installsuffix cgo -o server .
 
 FROM alpine:3.11
+ARG BRANCH
+ENV BRANCH $BRANCH
 
 WORKDIR /
 
