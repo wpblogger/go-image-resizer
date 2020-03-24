@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"image"
+
+	"image/color"
+	"image/draw"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
@@ -117,7 +120,8 @@ func convertImage(realImageURL string, params []string) (string, error) {
 	}
 	r := bytes.NewBuffer(resp.Body())
 	var img image.Image
-	switch imgType := string(resp.Header.ContentType()); imgType {
+	imgType := string(resp.Header.ContentType())
+	switch imgType {
 	case "image/jpeg":
 		img, err = jpeg.Decode(r)
 	case "image/png":
@@ -131,9 +135,16 @@ func convertImage(realImageURL string, params []string) (string, error) {
 	if err != nil {
 		return result, err
 	}
-	m := resize.Resize(uint(newWidth), uint(newHeight), img, resize.Lanczos3)
+	m := resize.Resize(uint(newWidth), uint(newHeight), img, resize.Bilinear)
 	var out bytes.Buffer
-	jpeg.Encode(&out, m, nil)
+	if imgType == "image/png" {
+		newImg := image.NewRGBA(m.Bounds())
+		draw.Draw(newImg, newImg.Bounds(), &image.Uniform{color.White}, image.Point{}, draw.Src)
+		draw.Draw(newImg, newImg.Bounds(), m, m.Bounds().Min, draw.Over)
+		jpeg.Encode(&out, newImg, nil)
+	} else {
+		jpeg.Encode(&out, m, nil)
+	}
 	result = out.String()
 	return result, err
 }
