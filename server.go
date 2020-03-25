@@ -137,13 +137,15 @@ func convertImage(realImageURL string, params []string) (string, error) {
 	}
 	m := resize.Resize(uint(newWidth), uint(newHeight), img, resize.Bilinear)
 	var out bytes.Buffer
+	var opt jpeg.Options
+	opt.Quality = 100
 	if imgType == "image/png" {
 		newImg := image.NewRGBA(m.Bounds())
 		draw.Draw(newImg, newImg.Bounds(), &image.Uniform{color.White}, image.Point{}, draw.Src)
 		draw.Draw(newImg, newImg.Bounds(), m, m.Bounds().Min, draw.Over)
-		jpeg.Encode(&out, newImg, nil)
+		jpeg.Encode(&out, newImg, &opt)
 	} else {
-		jpeg.Encode(&out, m, nil)
+		jpeg.Encode(&out, m, &opt)
 	}
 	result = out.String()
 	return result, err
