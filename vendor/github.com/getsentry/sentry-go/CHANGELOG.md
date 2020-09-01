@@ -1,8 +1,85 @@
 # Changelog
 
-## Unreleased
+## v0.7.0
 
-- "I am running away from my responsibilities. And it feels good." – Michael Scott, Season 4, "Money"
+- feat: Include original error when event cannot be encoded as JSON (#258)
+- feat: Use Hub from request context when available (#217, #259)
+- feat: Extract stack frames from golang.org/x/xerrors (#262)
+- feat: Make Environment Integration preserve existing context data (#261)
+- feat: Recover and RecoverWithContext with arbitrary types (#268)
+- feat: Report bad usage of CaptureMessage and CaptureEvent (#269)
+- feat: Send debug logging to stderr by default (#266)
+- feat: Several improvements to documentation (#223, #245, #250, #265)
+- feat: Example of Recover followed by panic (#241, #247)
+- feat: Add Transactions and Spans (to support OpenTelemetry Sentry Exporter) (#235, #243, #254)
+- fix: Set either Frame.Filename or Frame.AbsPath (#233)
+- fix: Clone requestBody to new Scope (#244)
+- fix: Synchronize access and mutation of Hub.lastEventID (#264)
+- fix: Avoid repeated syscalls in prepareEvent (#256)
+- fix: Do not allocate new RNG for every event (#256)
+- fix: Remove stale replace directive in go.mod (#255)
+- fix(http): Deprecate HandleFunc, remove duplication (#260)
+
+_NOTE:_
+This version comes packed with several fixes and improvements and no breaking
+changes.
+Notably, there is a change in how the SDK reports file names in stack traces
+that should resolve any ambiguity when looking at stack traces and using the
+Suspect Commits feature.
+We recommend all users to upgrade.
+
+## v0.6.1
+
+- fix: Use NewEvent to init Event struct (#220)
+
+_NOTE:_
+A change introduced in v0.6.0 with the intent of avoiding allocations made a
+pattern used in official examples break in certain circumstances (attempting
+to write to a nil map).
+This release reverts the change such that maps in the Event struct are always
+allocated.
+
+## v0.6.0
+
+- feat: Read module dependencies from runtime/debug (#199)
+- feat: Support chained errors using Unwrap (#206)
+- feat: Report chain of errors when available (#185)
+- **[breaking]** fix: Accept http.RoundTripper to customize transport (#205)
+  Before the SDK accepted a concrete value of type `*http.Transport` in
+  `ClientOptions`, now it accepts any value implementing the `http.RoundTripper`
+  interface. Note that `*http.Transport` implements `http.RoundTripper`, so most
+  code bases will continue to work unchanged.  
+  Users of custom transport gain the ability to pass in other implementations of
+  `http.RoundTripper` and may be able to simplify their code bases.
+- fix: Do not panic when scope event processor drops event (#192)
+- **[breaking]** fix: Use time.Time for timestamps (#191)  
+  Users of sentry-go typically do not need to manipulate timestamps manually.
+  For those who do, the field type changed from `int64` to `time.Time`, which
+  should be more convenient to use. The recommended way to get the current time
+  is `time.Now().UTC()`.
+- fix: Report usage error including stack trace (#189)
+- feat: Add Exception.ThreadID field (#183)
+- ci: Test against Go 1.14, drop 1.11 (#170)
+- feat: Limit reading bytes from request bodies (#168)
+- **[breaking]** fix: Rename fasthttp integration package sentryhttp => sentryfasthttp  
+  The current recommendation is to use a named import, in which case existing
+  code should not require any change:
+  ```go
+  package main
+
+  import (
+  	"fmt"
+
+  	"github.com/getsentry/sentry-go"
+  	sentryfasthttp "github.com/getsentry/sentry-go/fasthttp"
+  	"github.com/valyala/fasthttp"
+  )
+  ```
+
+_NOTE:_
+This version includes some new features and a few breaking changes, none of
+which should pose troubles with upgrading. Most code bases should be able to
+upgrade without any changes.
 
 ## v0.5.1
 

@@ -154,7 +154,7 @@ checkout the official documentation:
 
 - [Configuration](https://docs.sentry.io/platforms/go/config)
 - [Error Reporting](https://docs.sentry.io/error-reporting/quickstart?platform=go)
-- [Enriching Error Data](https://docs.sentry.io/enriching-error-data/context?platform=go)
+- [Enriching Error Data](https://docs.sentry.io/enriching-error-data/additional-data/?platform=go)
 - [Transports](https://docs.sentry.io/platforms/go/transports)
 - [Integrations](https://docs.sentry.io/platforms/go/integrations)
   - [net/http](https://docs.sentry.io/platforms/go/http)
@@ -165,13 +165,18 @@ checkout the official documentation:
   - [martini](https://docs.sentry.io/platforms/go/martini)
   - [negroni](https://docs.sentry.io/platforms/go/negroni)
 
-## Resources:
+## Resources
 
 - [Bug Tracker](https://github.com/getsentry/sentry-go/issues)
 - [GitHub Project](https://github.com/getsentry/sentry-go)
-- [GoDoc](https://godoc.org/github.com/getsentry/sentry-go)
-- [go.dev](https://pkg.go.dev/github.com/getsentry/sentry-go)
-- [@getsentry](https://twitter.com/getsentry) on Twitter for updates
+- [![GoDoc](https://godoc.org/github.com/getsentry/sentry-go?status.svg)](https://godoc.org/github.com/getsentry/sentry-go)
+- [![go.dev](https://img.shields.io/badge/go.dev-pkg-007d9c.svg?style=flat)](https://pkg.go.dev/github.com/getsentry/sentry-go)
+- [![Documentation](https://img.shields.io/badge/documentation-sentry.io-green.svg)](https://docs.sentry.io/platforms/go/)
+- [![Forum](https://img.shields.io/badge/forum-sentry-green.svg)](https://forum.sentry.io/c/sdks)
+- [![Discord](https://img.shields.io/discord/621778831602221064)](https://discord.gg/Ww9hbqr)
+- [![Stack Overflow](https://img.shields.io/badge/stack%20overflow-sentry-green.svg)](http://stackoverflow.com/questions/tagged/sentry)
+- [![Twitter Follow](https://img.shields.io/twitter/follow/getsentry?label=getsentry&style=social)](https://twitter.com/intent/follow?screen_name=getsentry)
+
 
 ## License
 

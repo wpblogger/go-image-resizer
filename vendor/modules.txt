@@ -1,19 +1,24 @@
+# github.com/andybalholm/brotli v1.0.0
+github.com/andybalholm/brotli
 # github.com/buaazp/fasthttprouter v0.1.1
 ## explicit
 github.com/buaazp/fasthttprouter
-# github.com/getsentry/sentry-go v0.5.1
+# github.com/getsentry/sentry-go v0.7.0
 ## explicit
 github.com/getsentry/sentry-go
-# github.com/klauspost/compress v1.9.0
+# github.com/klauspost/compress v1.10.7
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 github.com/klauspost/compress/zlib
 # github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 ## explicit
 github.com/nfnt/resize
+# github.com/recoilme/pudge v1.0.3
+## explicit
+github.com/recoilme/pudge
 # github.com/valyala/bytebufferpool v1.0.0
 github.com/valyala/bytebufferpool
-# github.com/valyala/fasthttp v1.9.0
+# github.com/valyala/fasthttp v1.16.0
 ## explicit
 github.com/valyala/fasthttp
 github.com/valyala/fasthttp/fasthttputil

@@ -5,13 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"os/signal"
+	"syscall"
 
 	"image/color"
 	"image/draw"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
-	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
@@ -21,18 +22,19 @@ import (
 	"github.com/buaazp/fasthttprouter"
 	"github.com/getsentry/sentry-go"
 	"github.com/nfnt/resize"
+	pudge "github.com/recoilme/pudge"
 	"github.com/valyala/fasthttp"
 )
 
 type queData struct {
-	createTime     int64
-	cacheInSeconds int64
-	filePath       string
+	createTime int64
+	filePath   string
 }
 
 var cacheInSeconds int64
 var queue []queData
 var branch string
+var db *pudge.Db
 
 func getResizeJPG(ctx *fasthttp.RequestCtx) {
 	var out string
@@ -80,15 +82,33 @@ func getResizeJPG(ctx *fasthttp.RequestCtx) {
 }
 
 func readCache(params []string) (string, error) {
-	data, err := ioutil.ReadFile("/tmp" + params[1] + "/" + params[2] + "_" + params[3])
-	return string(data), err
+	/*data, err := ioutil.ReadFile("/tmp" + params[1] + "/" + params[2] + "_" + params[3])
+	return string(data), err*/
+	var err error
+	var data string
+	db.Get(params[1]+"/"+params[2]+"_"+params[3], &data)
+	if len(data) == 0 {
+		err = errors.New("Error, unable to read value from cache")
+	}
+	return data, err
 }
 
 func writeCache(params []string, data string) error {
-	os.MkdirAll("/tmp"+params[1], os.ModePerm)
+	/*os.MkdirAll("/tmp"+params[1], os.ModePerm)
 	err := ioutil.WriteFile("/tmp"+params[1]+"/"+params[2]+"_"+params[3], []byte(data), 0644)
 	if err == nil {
 		data := queData{createTime: time.Now().Unix(), filePath: "/tmp" + params[1] + "/" + params[2] + "_" + params[3]}
+		queue = append(queue, data)
+	}
+	return err*/
+	var err error
+	var checkData string
+	db.Set(params[1]+"/"+params[2]+"_"+params[3], data)
+	db.Get(params[1]+"/"+params[2]+"_"+params[3], &checkData)
+	if checkData != data {
+		err = errors.New("Error, unable to add value to cache")
+	} else {
+		data := queData{createTime: time.Now().Unix(), filePath: params[1] + "/" + params[2] + "_" + params[3]}
 		queue = append(queue, data)
 	}
 	return err
@@ -164,13 +184,20 @@ func cleanCache() {
 	if len(path) == 0 {
 		return
 	}
-	err := os.Remove(path)
+	db.Delete(path)
+	var err error
+	var data string
+	db.Get(path, &data)
+	if len(data) != 0 {
+		err = errors.New("Error, unable to delete value from cache")
+	}
+	/*err := os.Remove(path)*/
 	if err != nil {
 		sentry.CaptureException(err)
 		log.Print(err)
 	} else {
 		queue = append(queue[:i], queue[i+1:]...)
-		log.Print("File ", path, " delete from cache")
+		log.Print("Key ", path, " delete from cache")
 	}
 }
 
@@ -194,18 +221,36 @@ func main() {
 	if len(os.Getenv("BRANCH")) > 0 {
 		branch = os.Getenv("BRANCH")
 	}
-	cacheInSeconds = 3600
+	cacheInSeconds = 10
 	if len(os.Getenv("CACHEINSECONDS")) > 0 {
 		cacheInt, err := strconv.ParseInt(os.Getenv("CACHEINSECONDS"), 10, 64)
 		if err == nil {
 			cacheInSeconds = cacheInt
 		}
 	}
+	cfg := &pudge.Config{}
+	cfg.StoreMode = 2
+	db, err = pudge.Open("./db", cfg)
+	if err != nil {
+		log.Panic(err)
+	}
 	go func() {
 		for {
 			cleanCache()
 			time.Sleep(10 * time.Second)
 		}
+	}()
+	var gracefulStop = make(chan os.Signal)
+	signal.Notify(gracefulStop, syscall.SIGTERM)
+	signal.Notify(gracefulStop, syscall.SIGINT)
+	go func() {
+		sig := <-gracefulStop
+		log.Printf("Received system call: %+v", sig)
+		log.Print("Start shutdown App")
+		db.Close()
+		db.DeleteFile()
+		log.Print("App shutdown")
+		os.Exit(0)
 	}()
 	router := fasthttprouter.New()
 	router.GET("/*name", getResizeJPG)
