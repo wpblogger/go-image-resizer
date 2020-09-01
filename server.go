@@ -82,8 +82,6 @@ func getResizeJPG(ctx *fasthttp.RequestCtx) {
 }
 
 func readCache(params []string) (string, error) {
-	/*data, err := ioutil.ReadFile("/tmp" + params[1] + "/" + params[2] + "_" + params[3])
-	return string(data), err*/
 	var err error
 	var data string
 	db.Get(params[1]+"/"+params[2]+"_"+params[3], &data)
@@ -94,13 +92,6 @@ func readCache(params []string) (string, error) {
 }
 
 func writeCache(params []string, data string) error {
-	/*os.MkdirAll("/tmp"+params[1], os.ModePerm)
-	err := ioutil.WriteFile("/tmp"+params[1]+"/"+params[2]+"_"+params[3], []byte(data), 0644)
-	if err == nil {
-		data := queData{createTime: time.Now().Unix(), filePath: "/tmp" + params[1] + "/" + params[2] + "_" + params[3]}
-		queue = append(queue, data)
-	}
-	return err*/
 	var err error
 	var checkData string
 	db.Set(params[1]+"/"+params[2]+"_"+params[3], data)
@@ -191,7 +182,6 @@ func cleanCache() {
 	if len(data) != 0 {
 		err = errors.New("Error, unable to delete value from cache")
 	}
-	/*err := os.Remove(path)*/
 	if err != nil {
 		sentry.CaptureException(err)
 		log.Print(err)
@@ -221,16 +211,15 @@ func main() {
 	if len(os.Getenv("BRANCH")) > 0 {
 		branch = os.Getenv("BRANCH")
 	}
-	cacheInSeconds = 10
+	cacheInSeconds = 3600
 	if len(os.Getenv("CACHEINSECONDS")) > 0 {
 		cacheInt, err := strconv.ParseInt(os.Getenv("CACHEINSECONDS"), 10, 64)
 		if err == nil {
 			cacheInSeconds = cacheInt
 		}
 	}
-	cfg := &pudge.Config{}
-	cfg.StoreMode = 2
-	db, err = pudge.Open("./db", cfg)
+	cfg := &pudge.Config{StoreMode: 2}
+	db, err = pudge.Open("", cfg)
 	if err != nil {
 		log.Panic(err)
 	}
